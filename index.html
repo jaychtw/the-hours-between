@@ -5,13 +5,19 @@ const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),smooth=x=>(x=clamp(x,0,1),x*x*(3-
 const art=Object.fromEntries(['bus','waiting','sharing'].map(name=>{const image=new Image();image.src=name+'.webp';return [name,image]}));
 function line(d,c,w){g.strokeStyle=c;g.lineWidth=w;g.lineCap='round';g.stroke(new Path2D(d))}
 function paint(image,x,feet,height){if(image.naturalWidth)g.drawImage(image,x,feet-height,height*image.naturalWidth/image.naturalHeight,height)}
+function contactShadow(x,y,rx,ry){
+ g.save();g.translate(x,y);g.scale(rx,ry);
+ const shade=g.createRadialGradient(0,0,0,0,0,1);
+ shade.addColorStop(0,'rgba(31,23,20,.64)');shade.addColorStop(.45,'rgba(38,29,26,.38)');shade.addColorStop(1,'rgba(38,29,26,0)');
+ g.fillStyle=shade;g.fillRect(-1,-1,2,2);g.restore()
+}
 function figures(){// The passing bus conceals the change of pose in either direction.
-paint(t<39?art.waiting:art.sharing,529,441,121)}
+paint(t<39?art.waiting:art.sharing,529,451,121)}
 function bus(){const x=1350-(t-18)*48;if(x<1300&&x>-570)paint(art.bus,x,472,159)}
 function foreground(wet){if(!bg.naturalWidth)return;g.save();g.clip(new Path2D('M0 0 H630 Q380 20 252 61 Q160 90 150 172 L139 182 L135 187 L133 448 L138 456 L135 688 L0 704 Z'));g.drawImage(bg,0,0,1280,720);g.fillStyle='rgba(42,58,79,'+(.27*wet)+')';g.fillRect(0,0,1280,720);g.restore()}
 function frame(now){let dt=Math.min(.08,(now-last)/1000);last=now;ambient+=dt;if(running&&!drag)t=clamp(t+dt,0,90);if(t===90)running=false;
 let w=stage.clientWidth,h=stage.clientHeight,d=Math.min(devicePixelRatio,1.6);if(canvas.width!==Math.round(w*d)||canvas.height!==Math.round(h*d)){canvas.width=Math.round(w*d);canvas.height=Math.round(h*d)}g.setTransform(d,0,0,d,0,0);let scale=Math.max(w/1280,h/720);g.translate((w-1280*scale)*.5+(w/h<1?75*scale:0), (h-720*scale)*.5);g.scale(scale,scale);view={s:scale,x:(w-1280*scale)*.5+(w/h<1?75*scale:0),y:(h-720*scale)*.5};if(bg.naturalWidth)g.drawImage(bg,0,0,1280,720);let wet=1-smooth(t/88);g.fillStyle='rgba(42,58,79,'+(.27*wet)+')';g.fillRect(0,0,1280,720);
-g.save();g.translate(0,882);g.scale(1,-1);g.globalAlpha=.16;figures();g.translate(0,-62);bus();g.restore();figures();paintObjects(dt);bus();
+g.save();g.translate(0,902);g.scale(1,-1);g.globalAlpha=.16;figures();g.translate(0,-42);bus();g.restore();contactShadow(565,450,17,3.1);contactShadow(t<39?592:598,450,14,3);figures();paintObjects(dt);bus();
 for(let i=0;i<145*wet+7;i++){let x=(i*113.91+ambient*52)%1280,y=(i*57.13+ambient*(260+i%57))%720;line('M'+x+' '+y+'l2 9','#e1e7db52',.9)}
 for(let i=0;i<30*wet+4;i++){let a=(ambient*.87+i*.271)%1;g.strokeStyle='rgba(239,218,177,'+((1-a)*.35)+')';g.lineWidth=.8;g.beginPath();g.ellipse(i*173%1280,439+i*43%270,1+a*15,1+a*3,0,0,7);g.stroke()}
 foreground(wet);seek.value=t;play.textContent=running?'Pause':t>=90?'Replay':'Play';document.querySelector('time').textContent='16:'+String(17+Math.floor(t/60)).padStart(2,'0')+':'+String(Math.floor(t)%60).padStart(2,'0');caption.hidden=ambient>=noticeUntil&&t>9&&t<85;caption.textContent=ambient<noticeUntil?notice:t>=85?'The rain has passed. You can go back.':'Tap the lamp, flower or bin. Drag to move through time.';
@@ -19,8 +25,8 @@ if(ctx){let near=Math.max(0,1-Math.abs(t-38)/9);road.gain.value=.001+.05*near;hu
 seek.oninput=()=>{t=+seek.value};play.onclick=()=>{if(t>=90)t=0;running=!running};const props=new Image();props.src='street.webp';
 const objects=[
  {name:'Street lamp',x:420,y:447,size:.58,top:312,width:54},
- {name:'Hibiscus',x:654,y:440,size:.27,top:221,width:154},
- {name:'Metal bin',x:745,y:448,size:.27,top:210,width:154}
+ {name:'Hibiscus',x:654,y:450,size:.27,top:221,width:154},
+ {name:'Metal bin',x:745,y:458,size:.27,top:210,width:154}
 ];
 let notice='',noticeUntil=0,view;
 function toggleObject(i){
@@ -32,6 +38,8 @@ function paintObjects(dt){
  if(!props.naturalWidth)return;
  objects.forEach((o,i)=>{
  const target=Number(!!o.on);o.phase=(o.phase||0)+(target-(o.phase||0))*(1-Math.exp(-dt*(i===2?7:4)));
+ if(i===1)contactShadow(o.x,o.y,15,3.1);
+ if(i===2)contactShadow(o.x+24*o.phase,o.y,18+15*o.phase,3.6);
  g.save();g.translate(o.x,o.y);
  if(i===2)g.rotate(o.phase*1.52);
  g.scale(o.size,o.size);
